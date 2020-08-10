@@ -27,7 +27,7 @@ lda = LDA(n_components = 2)
 X_train = lda.fit_transform(X_train, y_train)
 X_test = lda.transform(X_test)
 
-# Training the Kernel SVM model on the Training set
+# Training the Kernel SVM model on the Training set(accuracy = 76.5%)
 from sklearn.svm import SVC
 classifier = SVC( C=1, gamma= 0.2, kernel = 'rbf', random_state = 0)
 classifier.fit(X_train, y_train)
