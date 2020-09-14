@@ -63,3 +63,20 @@ cnn.fit_generator(training_set,
                   epochs = 25,
                   validation_data = test_set,
                   validation_steps = 334)
+
+#For 1 image
+import numpy as np
+ 
+from keras.preprocessing import image
+ 
+test_image = image.load_img('chest_xray/test/NORMAL/IM-0009-0001.jpeg', target_size = (64, 64))
+ 
+test_image = image.img_to_array(test_image)
+test_image = np.expand_dims(test_image, axis = 0)
+result = cnn.predict(test_image)
+training_set.class_indices
+if result[0][0] == 0:
+    prediction = 'Normal'
+else:
+    prediction = 'Pneumonia'
+print(prediction)
