@@ -20,11 +20,11 @@ sc = StandardScaler()
 X_train = sc.fit_transform(X_train)
 X_test = sc.transform(X_test)
 
-# Applying LDA for reducing dimensions
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
-lda = LDA(n_components = 2)
-X_train = lda.fit_transform(X_train, y_train)
-X_test = lda.transform(X_test)
+# Applying Kernel PCA
+from sklearn.decomposition import KernelPCA
+kpca = KernelPCA(n_components = 2, kernel = 'rbf')
+X_train = kpca.fit_transform(X_train)
+X_test = kpca.transform(X_test)
 
 # Training the Kernel SVM model on the Training set(83.53% accuracy)
 from sklearn.svm import SVC
@@ -76,8 +76,8 @@ for i, j in enumerate(np.unique(y_set)):
     plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
                 c = ListedColormap(('red', 'green'))(i), label = j)
 plt.title('Logistic Regression (Training set)')
-plt.xlabel('Age')
-plt.ylabel('Estimated Salary')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
 plt.legend()
 plt.show()
 
@@ -94,7 +94,7 @@ for i, j in enumerate(np.unique(y_set)):
     plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
                 c = ListedColormap(('red', 'green'))(i), label = j)
 plt.title('Logistic Regression (Test set)')
-plt.xlabel('Age')
-plt.ylabel('Estimated Salary')
+plt.xlabel('PC1')
+plt.ylabel('PC2')
 plt.legend()
 plt.show()
