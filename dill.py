@@ -1,100 +1,72 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 12 14:29:07 2020
+
+@author: Kartikey
+"""
 
 
-# Importing the libraries
-import numpy as np
-import matplotlib.pyplot as plt
+#For uploading and accessing the data
 import pandas as pd
 
-# Importing the csv dataset
-dataset = pd.read_csv('heart.csv')
-X = dataset.iloc[:, 0:-1].values
-y = dataset.iloc[:, -1].values
+import warnings
+warnings.filterwarnings("ignore")
 
-# Splitting the dataset into the Training set and Test set
+df = pd.read_csv("heart.csv")
+
+df.rename(columns ={'age':'Age','sex':'Sex','cp':'Chest_pain','trestbps':'Resting_blood_pressure','chol':'Cholesterol','fbs':'Fasting_blood_sugar',
+                    'restecg':'ECG_results','thalach':'Maximum_heart_rate','exang':'Exercise_induced_angina','oldpeak':'ST_depression','ca':'Major_vessels',
+                   'thal':'Thalassemia_types','target':'Heart_attack','slope':'ST_slope'}, inplace = True)
+
+from sklearn.ensemble import RandomForestClassifier
+
+#Libraries for various model parameter selection.
 from sklearn.model_selection import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+from sklearn.model_selection import GridSearchCV
+from sklearn.preprocessing import MinMaxScaler
 
-# Feature Scaling
-from sklearn.preprocessing import StandardScaler
-sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
 
-# Applying Kernel PCA
-from sklearn.decomposition import KernelPCA
-kpca = KernelPCA(n_components = 2, kernel = 'rbf')
-X_train = kpca.fit_transform(X_train)
-X_test = kpca.transform(X_test)
+dummy1 = pd.get_dummies(df.Chest_pain)
+dummy2 = pd.get_dummies(df.Thalassemia_types)
+dummy3 = pd.get_dummies(df.ECG_results)
+dummy4 = pd.get_dummies(df.ST_slope)
+dummy5 = pd.get_dummies(df.Major_vessels)
+merge = pd.concat([df,dummy1,dummy2,dummy3,dummy4,dummy5],axis = 'columns')
 
-# Training the Kernel SVM model on the Training set(83.53% accuracy)
-from sklearn.svm import SVC
-classifier = SVC( C=10, gamma= 0.1, kernel = 'linear', random_state = 0)
-classifier.fit(X_train, y_train)
+final = merge.drop(['Chest_pain','Thalassemia_types','ECG_results','ST_slope','Major_vessels'],axis = 1)
+
+x = final.drop(['Heart_attack'], axis = 1)
+y = final['Heart_attack']
+
+x_train, x_test, y_train, y_test = train_test_split(x,y,test_size = 0.20, random_state = 5)
+
+feature_scaler = MinMaxScaler()
+x_train = feature_scaler.fit_transform(x_train)
+x_test = feature_scaler.transform(x_test)
+
+accuracy = []
+
+
+
+n_estimators = [250,500,750,1000]
+criterion = ['gini','entropy']
+max_features = ['auto','sqrt','log2']
+random_state = [5]
+
+RF = RandomForestClassifier()
+
+parameters = {'n_estimators': [250,500,750,1000],'criterion': ['gini','entropy'],'max_features':['auto','sqrt','log2']}
+
+RFClassifier = GridSearchCV(RF, parameters, scoring='neg_mean_squared_error' ,cv =5)
+RFClassifier.fit(x_train, y_train)
+RFClassifier.best_params_
+
+
+model6 = RandomForestClassifier(criterion = 'entropy',max_features = 'log2',n_estimators = 250, random_state = 5)
+model6.fit(x_train,y_train)
+accuracy6 = model6.score(x_test,y_test)
+accuracy.append(accuracy6)
+print('Random Forest Classifier Accuracy -->',((accuracy6)*100))
 
 # Predicting the Test set results
-y_pred = classifier.predict(X_test)
-
-# Making the Confusion Matrix
-from sklearn.metrics import confusion_matrix, accuracy_score
-cm = confusion_matrix(y_test, y_pred)
-print(cm)
-accuracy_score(y_test, y_pred)
-
-# Applying k-Fold Cross Validation
-from sklearn.model_selection import cross_val_score
-accuracies = cross_val_score(estimator = classifier, X = X_train, y = y_train, cv = 10)
-print("Accuracy: {:.2f} %".format(accuracies.mean()*100))
-print("Standard Deviation: {:.2f} %".format(accuracies.std()*100))
-
-# Applying Grid Search to find the best model and the best parameters
-from sklearn.model_selection import GridSearchCV
-parameters = [{'C': [1, 10, 100, 1000], 'kernel': ['linear'], 'gamma': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]},
-              {'C': [1, 10, 100, 1000], 'kernel': ['rbf'], 'gamma': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]}]
-grid_search = GridSearchCV(estimator = classifier,
-                           param_grid = parameters,
-                           scoring = 'accuracy',
-                           cv = 10,
-                           n_jobs = -1)
-grid_search = grid_search.fit(X_train, y_train)
-best_accuracy = grid_search.best_score_
-best_parameters = grid_search.best_params_
-print("Best Accuracy: {:.2f} %".format(best_accuracy*100))
-print("Best Parameters:", best_parameters)
-
-
-
-# Visualising the Training set results
-from matplotlib.colors import ListedColormap
-X_set, y_set = X_train, y_train
-X1, X2 = np.meshgrid(np.arange(start = X_set[:, 0].min() - 1, stop = X_set[:, 0].max() + 1, step = 0.01),
-                     np.arange(start = X_set[:, 1].min() - 1, stop = X_set[:, 1].max() + 1, step = 0.01))
-plt.contourf(X1, X2, classifier.predict(np.array([X1.ravel(), X2.ravel()]).T).reshape(X1.shape),
-             alpha = 0.75, cmap = ListedColormap(('red', 'green')))
-plt.xlim(X1.min(), X1.max())
-plt.ylim(X2.min(), X2.max())
-for i, j in enumerate(np.unique(y_set)):
-    plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
-                c = ListedColormap(('red', 'green'))(i), label = j)
-plt.title('Logistic Regression (Training set)')
-plt.xlabel('PC1')
-plt.ylabel('PC2')
-plt.legend()
-plt.show()
-
-# Visualising the Test set results
-from matplotlib.colors import ListedColormap
-X_set, y_set = X_test, y_test
-X1, X2 = np.meshgrid(np.arange(start = X_set[:, 0].min() - 1, stop = X_set[:, 0].max() + 1, step = 0.01),
-                     np.arange(start = X_set[:, 1].min() - 1, stop = X_set[:, 1].max() + 1, step = 0.01))
-plt.contourf(X1, X2, classifier.predict(np.array([X1.ravel(), X2.ravel()]).T).reshape(X1.shape),
-             alpha = 0.75, cmap = ListedColormap(('red', 'green')))
-plt.xlim(X1.min(), X1.max())
-plt.ylim(X2.min(), X2.max())
-for i, j in enumerate(np.unique(y_set)):
-    plt.scatter(X_set[y_set == j, 0], X_set[y_set == j, 1],
-                c = ListedColormap(('red', 'green'))(i), label = j)
-plt.title('Logistic Regression (Test set)')
-plt.xlabel('PC1')
-plt.ylabel('PC2')
-plt.legend()
-plt.show()
+y_pred = model6.predict(x_test)
